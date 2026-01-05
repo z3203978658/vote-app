@@ -1,0 +1,402 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f5f7fa;
+    color: #333;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #fff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #e1e8ed;
+}
+
+header h1 {
+    color: #1da1f2;
+    font-size: 2em;
+}
+
+/* 选项卡样式 */
+.tabs {
+    display: flex;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #e1e8ed;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 12px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    color: #657786;
+    transition: all 0.3s ease;
+}
+
+.tab-btn:hover {
+    color: #1da1f2;
+}
+
+.tab-btn.active {
+    color: #1da1f2;
+    border-bottom-color: #1da1f2;
+}
+
+/* 选项卡内容 */
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+h2 {
+    margin-bottom: 20px;
+    color: #14171a;
+    font-size: 1.5em;
+}
+
+/* 表单样式 */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #14171a;
+}
+
+.form-group input[type="text"],
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e1e8ed;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+}
+
+.form-group input[type="text"]:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #1da1f2;
+    box-shadow: 0 0 0 3px rgba(29, 161, 242, 0.1);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+/* 选项容器 */
+#optionsContainer {
+    margin-bottom: 10px;
+}
+
+.option-item {
+    display: flex;
+    margin-bottom: 10px;
+    align-items: center;
+}
+
+.option-input {
+    flex: 1;
+    margin-right: 10px;
+}
+
+.remove-option {
+    width: 30px;
+    height: 30px;
+    background-color: #e0245e;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s ease;
+}
+
+.remove-option:hover:not(:disabled) {
+    background-color: #bd1e51;
+}
+
+.remove-option:disabled {
+    background-color: #e1e8ed;
+    cursor: not-allowed;
+}
+
+#addOption {
+    background-color: #1da1f2;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+}
+
+#addOption:hover {
+    background-color: #0d95e8;
+}
+
+/* 复选框样式 */
+.form-group input[type="checkbox"] {
+    margin-right: 8px;
+    cursor: pointer;
+}
+
+/* 提交按钮 */
+.submit-btn {
+    background-color: #1da1f2;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+    width: 100%;
+}
+
+.submit-btn:hover {
+    background-color: #0d95e8;
+}
+
+.submit-btn:active {
+    transform: translateY(1px);
+}
+
+/* 投票列表样式 */
+.votes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.vote-item {
+    padding: 20px;
+    border: 2px solid #e1e8ed;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.vote-item:hover {
+    border-color: #1da1f2;
+    box-shadow: 0 2px 8px rgba(29, 161, 242, 0.15);
+}
+
+.vote-item h3 {
+    margin-bottom: 8px;
+    color: #14171a;
+}
+
+.vote-item p {
+    margin-bottom: 12px;
+    color: #657786;
+    font-size: 14px;
+}
+
+.vote-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: #8899a6;
+}
+
+.view-vote-btn {
+    background-color: #1da1f2;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.3s ease;
+}
+
+.view-vote-btn:hover {
+    background-color: #0d95e8;
+}
+
+/* 投票详情样式 */
+.detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #e1e8ed;
+}
+
+.back-btn {
+    background-color: #657786;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+}
+
+.back-btn:hover {
+    background-color: #4a5568;
+}
+
+#detailDescription {
+    margin-bottom: 25px;
+    color: #657786;
+    font-size: 16px;
+}
+
+/* 投票选项样式 */
+#detailOptions {
+    margin-bottom: 25px;
+}
+
+.option-label {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    border: 2px solid #e1e8ed;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.option-label:hover {
+    border-color: #1da1f2;
+    background-color: #f7f9fa;
+}
+
+.option-label input[type="radio"],
+.option-label input[type="checkbox"] {
+    margin-right: 12px;
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+}
+
+.option-text {
+    font-size: 16px;
+    color: #14171a;
+}
+
+/* 结果样式 */
+.results {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 2px solid #e1e8ed;
+}
+
+.results h3 {
+    margin-bottom: 20px;
+    color: #14171a;
+}
+
+.result-item {
+    margin-bottom: 15px;
+}
+
+.result-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.result-text {
+    color: #14171a;
+}
+
+.result-count {
+    color: #657786;
+}
+
+.result-bar {
+    height: 15px;
+    background-color: #e1e8ed;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.result-progress {
+    height: 100%;
+    background-color: #1da1f2;
+    border-radius: 10px;
+    transition: width 0.5s ease;
+}
+
+.result-percentage {
+    text-align: right;
+    font-size: 12px;
+    color: #8899a6;
+    margin-top: 3px;
+}
+
+/* 空状态样式 */
+.empty-state {
+    text-align: center;
+    padding: 50px 20px;
+    color: #657786;
+}
+
+.empty-state h3 {
+    margin-bottom: 10px;
+    color: #14171a;
+}
+
+/* 响应式设计 */
+@media (max-width: 600px) {
+    .container {
+        margin: 10px;
+        padding: 15px;
+    }
+    
+    header h1 {
+        font-size: 1.5em;
+    }
+    
+    .detail-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .vote-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+}
