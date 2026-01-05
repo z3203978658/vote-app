@@ -243,8 +243,55 @@ function switchTab(tabId) {
 }
 
 // 加載投票數據
-function loadVotes() {
-    if (database) {
+async function loadVotes() {
+    if (USE_API) {
+        // 使用自定義 API（您的服務器）
+        try {
+            const response = await fetch(`${API_BASE_URL}/votes`);
+            if (response.ok) {
+                votes = await response.json();
+                renderVotesList();
+                
+                // 設置輪詢更新（每 5 秒刷新一次）
+                if (pollInterval) {
+                    clearInterval(pollInterval);
+                }
+                pollInterval = setInterval(async () => {
+                    try {
+                        const res = await fetch(`${API_BASE_URL}/votes`);
+                        if (res.ok) {
+                            const newVotes = await res.json();
+                            // 只在數據變化時更新
+                            if (JSON.stringify(votes) !== JSON.stringify(newVotes)) {
+                                votes = newVotes;
+                                renderVotesList();
+                                // 如果正在查看投票詳情，更新詳情頁
+                                if (currentVote) {
+                                    const updatedVote = votes.find(v => v.id === currentVote.id);
+                                    if (updatedVote) {
+                                        currentVote = updatedVote;
+                                        renderVoteDetail();
+                                    }
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.error('輪詢更新失敗:', error);
+                    }
+                }, 5000);
+            } else {
+                console.error('獲取投票失敗:', response.statusText);
+                // 降級到本地存儲
+                votes = JSON.parse(localStorage.getItem('votes')) || [];
+                renderVotesList();
+            }
+        } catch (error) {
+            console.error('API 請求失敗:', error);
+            // 降級到本地存儲
+            votes = JSON.parse(localStorage.getItem('votes')) || [];
+            renderVotesList();
+        }
+    } else if (USE_FIREBASE && database) {
         // 使用 Firebase 實時數據庫
         const votesRef = database.ref('votes');
         votesRef.on('value', (snapshot) => {
@@ -327,7 +374,7 @@ function updateOptionPlaceholders() {
 }
 
 // 創建投票
-function createVote(e) {
+async function createVote(e) {
     e.preventDefault();
     
     // 檢查管理員權限
@@ -361,25 +408,69 @@ function createVote(e) {
         return;
     }
     
-    // 創建投票對象
-    const vote = {
-        id: Date.now().toString(),
-        title,
-        description,
-        options,
-        isMultiple,
-        createdAt: new Date().toLocaleString('zh-TW'),
-        totalVotes: 0,
-        createdBy: currentUser
-    };
-    
-    // 添加到投票列表
-    votes.unshift(vote);
-    
-    // 保存投票數據
-    saveVotes();
-    
-    alert('投票創建成功！');
+    if (USE_API) {
+        // 使用 API 創建投票
+        try {
+            const response = await fetch(`${API_BASE_URL}/votes`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    title,
+                    description,
+                    options,
+                    isMultiple,
+                    createdBy: currentUser
+                })
+            });
+            
+            if (response.ok) {
+                const newVote = await response.json();
+                alert('投票創建成功！');
+                // 重新加載投票列表
+                await loadVotes();
+            } else {
+                const error = await response.json();
+                alert('創建投票失敗：' + (error.error || '未知錯誤'));
+                return;
+            }
+        } catch (error) {
+            console.error('創建投票失敗:', error);
+            alert('創建投票失敗，請檢查網絡連接');
+            return;
+        }
+    } else if (USE_FIREBASE && database) {
+        // 使用 Firebase
+        const vote = {
+            id: Date.now().toString(),
+            title,
+            description,
+            options,
+            isMultiple,
+            createdAt: new Date().toLocaleString('zh-TW'),
+            totalVotes: 0,
+            createdBy: currentUser
+        };
+        votes.unshift(vote);
+        saveVotes();
+        alert('投票創建成功！');
+    } else {
+        // 本地存儲模式
+        const vote = {
+            id: Date.now().toString(),
+            title,
+            description,
+            options,
+            isMultiple,
+            createdAt: new Date().toLocaleString('zh-TW'),
+            totalVotes: 0,
+            createdBy: currentUser
+        };
+        votes.unshift(vote);
+        saveVotes();
+        alert('投票創建成功！');
+    }
     
     // 重置表單
     createVoteForm.reset();
