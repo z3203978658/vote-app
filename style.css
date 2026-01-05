@@ -338,6 +338,11 @@ h2 {
     border-bottom: 2px solid #e1e8ed;
 }
 
+.detail-actions {
+    display: flex;
+    gap: 10px;
+}
+
 .back-btn {
     background-color: #657786;
     color: white;
@@ -351,6 +356,42 @@ h2 {
 
 .back-btn:hover {
     background-color: #4a5568;
+}
+
+.delete-btn {
+    background-color: #e0245e;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+}
+
+.delete-btn:hover {
+    background-color: #bd1e51;
+}
+
+.vote-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.delete-vote-btn {
+    background-color: #e0245e;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.3s ease;
+}
+
+.delete-vote-btn:hover {
+    background-color: #bd1e51;
 }
 
 #detailDescription {

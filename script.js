@@ -410,7 +410,10 @@ function renderVotesList() {
                 <span>創建時間: ${vote.createdAt}</span>
                 <span>總票數: ${vote.totalVotes}</span>
                 ${vote.createdBy ? `<span>創建者: ${vote.createdBy}</span>` : ''}
-                <button class="view-vote-btn" data-vote-id="${vote.id}">查看投票</button>
+                <div class="vote-actions">
+                    <button class="view-vote-btn" data-vote-id="${vote.id}">查看投票</button>
+                    ${isAdmin ? `<button class="delete-vote-btn" data-vote-id="${vote.id}">刪除</button>` : ''}
+                </div>
             </div>
         </div>
     `).join('');
@@ -424,6 +427,18 @@ function renderVotesList() {
             viewVote(voteId);
         });
     });
+    
+    // 綁定刪除投票事件（僅管理員）
+    if (isAdmin) {
+        const deleteVoteBtns = votesList.querySelectorAll('.delete-vote-btn');
+        deleteVoteBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const voteId = btn.dataset.voteId;
+                deleteVote(voteId);
+            });
+        });
+    }
     
     // 綁定投票項點擊事件
     const voteItems = votesList.querySelectorAll('.vote-item');
@@ -443,6 +458,14 @@ function viewVote(voteId) {
     // 渲染投票詳情
     renderVoteDetail();
     
+    // 顯示/隱藏刪除按鈕（僅管理員）
+    const deleteBtn = document.getElementById('deleteVoteBtn');
+    if (deleteBtn) {
+        deleteBtn.style.display = isAdmin ? 'inline-block' : 'none';
+        // 重新綁定刪除事件
+        deleteBtn.onclick = () => deleteVote(voteId);
+    }
+    
     // 切換到詳情頁
     document.getElementById('detail').classList.add('active');
     document.getElementById('list').classList.remove('active');
@@ -450,6 +473,35 @@ function viewVote(voteId) {
     
     // 更新選項卡按鈕狀態
     tabBtns.forEach(btn => btn.classList.remove('active'));
+}
+
+// 刪除投票
+function deleteVote(voteId) {
+    if (!isAdmin) {
+        alert('只有管理員才能刪除投票！');
+        return;
+    }
+    
+    const vote = votes.find(v => v.id === voteId);
+    if (!vote) return;
+    
+    if (confirm(`確定要刪除投票「${vote.title}」嗎？此操作無法撤銷！`)) {
+        // 從數組中移除
+        votes = votes.filter(v => v.id !== voteId);
+        
+        // 保存到存儲
+        saveVotes();
+        
+        // 如果當前正在查看被刪除的投票，返回列表
+        if (currentVote && currentVote.id === voteId) {
+            switchTab('list');
+        } else {
+            // 重新渲染列表
+            renderVotesList();
+        }
+        
+        alert('投票已刪除！');
+    }
 }
 
 // 渲染投票詳情
