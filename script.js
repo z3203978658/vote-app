@@ -582,7 +582,7 @@ function viewVote(voteId) {
 }
 
 // 刪除投票
-function deleteVote(voteId) {
+async function deleteVote(voteId) {
     if (!isAdmin) {
         alert('只有管理員才能刪除投票！');
         return;
@@ -592,11 +592,37 @@ function deleteVote(voteId) {
     if (!vote) return;
     
     if (confirm(`確定要刪除投票「${vote.title}」嗎？此操作無法撤銷！`)) {
-        // 從數組中移除
-        votes = votes.filter(v => v.id !== voteId);
-        
-        // 保存到存儲
-        saveVotes();
+        if (USE_API) {
+            // 使用 API 刪除投票
+            try {
+                const response = await fetch(`${API_BASE_URL}/votes/${voteId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    votes = votes.filter(v => v.id !== voteId);
+                    alert('投票已刪除！');
+                } else {
+                    const error = await response.json();
+                    alert('刪除投票失敗：' + (error.error || '未知錯誤'));
+                    return;
+                }
+            } catch (error) {
+                console.error('刪除投票失敗:', error);
+                alert('刪除投票失敗，請檢查網絡連接');
+                return;
+            }
+        } else if (USE_FIREBASE && database) {
+            // 使用 Firebase
+            votes = votes.filter(v => v.id !== voteId);
+            saveVotes();
+            alert('投票已刪除！');
+        } else {
+            // 本地存儲模式
+            votes = votes.filter(v => v.id !== voteId);
+            saveVotes();
+            alert('投票已刪除！');
+        }
         
         // 如果當前正在查看被刪除的投票，返回列表
         if (currentVote && currentVote.id === voteId) {
@@ -606,7 +632,10 @@ function deleteVote(voteId) {
             renderVotesList();
         }
         
-        alert('投票已刪除！');
+        // 重新加載投票列表
+        if (USE_API) {
+            await loadVotes();
+        }
     }
 }
 
@@ -635,7 +664,7 @@ function renderVoteDetail() {
 }
 
 // 提交投票
-function submitVote(e) {
+async function submitVote(e) {
     e.preventDefault();
     
     if (!currentVote) return;
@@ -647,24 +676,68 @@ function submitVote(e) {
         return;
     }
     
-    // 更新投票計數
-    selectedOptions.forEach(option => {
-        const index = parseInt(option.value);
-        currentVote.options[index].votes++;
-        currentVote.totalVotes++;
-    });
+    const selectedIndices = selectedOptions.map(option => parseInt(option.value));
     
-    // 保存投票數據
-    saveVotes();
+    if (USE_API) {
+        // 使用 API 提交投票
+        try {
+            const response = await fetch(`${API_BASE_URL}/votes/${currentVote.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    selectedOptions: selectedIndices
+                })
+            });
+            
+            if (response.ok) {
+                const updatedVote = await response.json();
+                currentVote = updatedVote;
+                // 更新本地數組
+                const voteIndex = votes.findIndex(v => v.id === currentVote.id);
+                if (voteIndex !== -1) {
+                    votes[voteIndex] = updatedVote;
+                }
+                alert('投票成功！');
+            } else {
+                const error = await response.json();
+                alert('投票失敗：' + (error.error || '未知錯誤'));
+                return;
+            }
+        } catch (error) {
+            console.error('投票失敗:', error);
+            alert('投票失敗，請檢查網絡連接');
+            return;
+        }
+    } else if (USE_FIREBASE && database) {
+        // 使用 Firebase
+        selectedIndices.forEach(index => {
+            currentVote.options[index].votes++;
+            currentVote.totalVotes++;
+        });
+        saveVotes();
+        alert('投票成功！');
+    } else {
+        // 本地存儲模式
+        selectedIndices.forEach(index => {
+            currentVote.options[index].votes++;
+            currentVote.totalVotes++;
+        });
+        saveVotes();
+        alert('投票成功！');
+    }
     
     // 重新渲染詳情
     renderVoteDetail();
     
-    // 顯示成功提示
-    alert('投票成功！');
-    
     // 重置表單
     voteForm.reset();
+    
+    // 重新加載投票列表以同步數據
+    if (USE_API) {
+        await loadVotes();
+    }
 }
 
 // 渲染結果
