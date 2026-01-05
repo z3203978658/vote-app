@@ -5,21 +5,54 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>投票小程序</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 </head>
 <body>
-    <div class="container">
+    <!-- 登錄界面 -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <h2>登錄投票系統</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">用戶名</label>
+                    <input type="text" id="username" required placeholder="請輸入用戶名">
+                </div>
+                <div class="form-group">
+                    <label for="password">密碼</label>
+                    <input type="password" id="password" required placeholder="請輸入密碼">
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="isAdmin"> 管理員登錄
+                    </label>
+                    <small class="hint">管理員密碼：admin123（可在 script.js 中修改）</small>
+                </div>
+                <button type="submit" class="submit-btn">登錄</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="container" id="mainContainer" style="display: none;">
         <header>
             <h1>投票小程序</h1>
+            <div class="user-info">
+                <span id="currentUser">未登錄</span>
+                <span id="userRole" class="role-badge"></span>
+                <button id="logoutBtn" class="logout-btn">登出</button>
+            </div>
         </header>
         
         <!-- 导航选项卡 -->
         <nav class="tabs">
-            <button class="tab-btn active" data-tab="create">创建投票</button>
-            <button class="tab-btn" data-tab="list">投票列表</button>
+            <button class="tab-btn" data-tab="create" id="createTabBtn" style="display: none;">创建投票</button>
+            <button class="tab-btn active" data-tab="list">投票列表</button>
         </nav>
         
         <!-- 创建投票区域 -->
-        <section id="create" class="tab-content active">
+        <section id="create" class="tab-content">
             <h2>创建新投票</h2>
             <form id="createVoteForm">
                 <div class="form-group">
@@ -54,7 +87,7 @@
         </section>
         
         <!-- 投票列表区域 -->
-        <section id="list" class="tab-content">
+        <section id="list" class="tab-content active">
             <h2>投票列表</h2>
             <div id="votesList" class="votes-list"></div>
         </section>
