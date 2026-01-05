@@ -662,6 +662,10 @@ function renderVoteDetail() {
     document.getElementById('detailTitle').textContent = currentVote.title;
     document.getElementById('detailDescription').textContent = currentVote.description;
     
+    // 檢查是否已投票（僅作為提示，實際驗證在後端基於 IP）
+    // 注意：由於用戶名可以隨意輸入，前端無法可靠判斷
+    const userHasVoted = USE_API ? false : hasUserVoted(currentVote); // API 模式下不依賴前端檢查
+    
     // 渲染選項
     const detailOptions = document.getElementById('detailOptions');
     detailOptions.innerHTML = currentVote.options.map((option, index) => `
@@ -669,10 +673,47 @@ function renderVoteDetail() {
             <input type="${currentVote.isMultiple ? 'checkbox' : 'radio'}" 
                    name="voteOption" 
                    value="${index}" 
-                   required>
+                   ${userHasVoted ? 'disabled' : 'required'}>
             <span class="option-text">${option.text}</span>
         </label>
     `).join('');
+    
+    // 顯示已投票提示（僅在非 API 模式下顯示，API 模式下由後端控制）
+    const voteForm = document.getElementById('voteForm');
+    const submitBtn = voteForm.querySelector('button[type="submit"]');
+    if (userHasVoted && !USE_API) {
+        // 如果已投票（僅本地模式），禁用表單並顯示提示
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = '您已投票';
+            submitBtn.style.opacity = '0.6';
+            submitBtn.style.cursor = 'not-allowed';
+        }
+        
+        // 添加已投票提示
+        let votedNotice = detailOptions.querySelector('.voted-notice');
+        if (!votedNotice) {
+            votedNotice = document.createElement('div');
+            votedNotice.className = 'voted-notice';
+            votedNotice.style.cssText = 'margin-top: 15px; padding: 12px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 5px; color: #856404; text-align: center;';
+            votedNotice.textContent = '✓ 您已經投過票了，感謝您的參與！';
+            detailOptions.appendChild(votedNotice);
+        }
+    } else {
+        // 如果未投票，啟用表單
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = '提交投票';
+            submitBtn.style.opacity = '1';
+            submitBtn.style.cursor = 'pointer';
+        }
+        
+        // 移除已投票提示
+        const votedNotice = detailOptions.querySelector('.voted-notice');
+        if (votedNotice) {
+            votedNotice.remove();
+        }
+    }
     
     // 渲染結果
     renderResults();
@@ -695,11 +736,13 @@ async function submitVote(e) {
     
     if (USE_API) {
         // 使用 API 提交投票
+        // 注意：投票限制基於 IP 地址，不依賴用戶名（因為用戶名可以隨意輸入）
         try {
             const response = await apiRequest(`${API_BASE_URL}/votes/${currentVote.id}`, {
                 method: 'PUT',
                 body: JSON.stringify({
-                    selectedOptions: selectedIndices
+                    selectedOptions: selectedIndices,
+                    username: currentUser // 傳遞用戶名（僅用於顯示，不用於驗證）
                 })
             });
             
@@ -713,23 +756,61 @@ async function submitVote(e) {
             alert('投票成功！');
         } catch (error) {
             console.error('投票失敗:', error);
+            // apiRequest 已經處理了錯誤響應，直接使用 error.message
             alert('投票失敗：' + error.message);
+            // 如果已投票，重新渲染以顯示已投票狀態
+            if (error.message.includes('已經投過票') || error.message.includes('設備')) {
+                await loadVotes();
+                renderVoteDetail();
+            }
             return;
         }
     } else if (USE_FIREBASE && database) {
-        // 使用 Firebase
+        // 使用 Firebase（本地模式，無法獲取 IP，僅基於用戶名檢查）
+        // 注意：這不是可靠的限制方式，因為用戶名可以隨意輸入
+        if (!currentVote.votedUsers) {
+            currentVote.votedUsers = [];
+        }
+        if (hasUserVoted(currentVote)) {
+            alert('您已經投過票了，每個用戶只能投票一次！');
+            return;
+        }
+        
         selectedIndices.forEach(index => {
             currentVote.options[index].votes++;
             currentVote.totalVotes++;
         });
+        
+        // 記錄已投票用戶（本地模式無法獲取 IP）
+        currentVote.votedUsers.push({
+            username: currentUser,
+            votedAt: new Date().toISOString()
+        });
+        
         saveVotes();
         alert('投票成功！');
     } else {
-        // 本地存儲模式
+        // 本地存儲模式（本地模式，無法獲取 IP，僅基於用戶名檢查）
+        // 注意：這不是可靠的限制方式，因為用戶名可以隨意輸入
+        if (!currentVote.votedUsers) {
+            currentVote.votedUsers = [];
+        }
+        if (hasUserVoted(currentVote)) {
+            alert('您已經投過票了，每個用戶只能投票一次！');
+            return;
+        }
+        
         selectedIndices.forEach(index => {
             currentVote.options[index].votes++;
             currentVote.totalVotes++;
         });
+        
+        // 記錄已投票用戶（本地模式無法獲取 IP）
+        currentVote.votedUsers.push({
+            username: currentUser,
+            votedAt: new Date().toISOString()
+        });
+        
         saveVotes();
         alert('投票成功！');
     }
@@ -744,6 +825,17 @@ async function submitVote(e) {
     if (USE_API) {
         await loadVotes();
     }
+}
+
+// 檢查用戶是否已投票（基於後端返回的狀態）
+// 注意：由於用戶名可以隨意輸入，前端無法可靠判斷，主要依賴後端驗證
+function hasUserVoted(vote) {
+    if (!vote || !vote.votedUsers || !Array.isArray(vote.votedUsers)) {
+        return false;
+    }
+    // 嘗試檢查當前用戶名（僅作為提示，實際驗證在後端）
+    // 由於用戶名不可靠，這裡只做粗略檢查
+    return vote.votedUsers.some(u => u.username === currentUser);
 }
 
 // 渲染結果
