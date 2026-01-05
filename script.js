@@ -164,12 +164,17 @@ function handleLogin(e) {
     
     // 如果是管理員登錄，驗證密碼
     if (isAdminLogin) {
+        if (!password) {
+            alert('管理員登錄需要輸入密碼！');
+            return;
+        }
         if (password !== ADMIN_PASSWORD) {
             alert('管理員密碼錯誤！');
             return;
         }
         isAdmin = true;
     } else {
+        // 普通用戶不需要密碼
         isAdmin = false;
     }
     
