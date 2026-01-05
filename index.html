@@ -55,14 +55,19 @@
     </div>
 
     <div class="container" id="mainContainer" style="display: none;">
-        <header>
+        <!-- 頂部標題欄 -->
+        <header class="app-header">
             <h1>投票小程序</h1>
-            <div class="user-info">
-                <span id="currentUser">未登錄</span>
-                <span id="userRole" class="role-badge"></span>
-                <button id="logoutBtn" class="logout-btn">登出</button>
-            </div>
         </header>
+        
+        <!-- 用戶信息欄 -->
+        <div class="user-info-bar">
+            <div class="user-info-left">
+                <span id="currentUser" class="user-id">未登錄</span>
+                <span id="userRole" class="role-badge"></span>
+            </div>
+            <button id="logoutBtn" class="logout-btn">登出</button>
+        </div>
         
         <!-- 导航选项卡 -->
         <nav class="tabs">
