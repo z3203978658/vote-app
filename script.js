@@ -1,6 +1,16 @@
 // 投票小程序 JavaScript - 支持管理員權限和雲存儲
 
-// Firebase 配置 - 請替換為您的 Firebase 配置
+// ============================================
+// 配置選項：選擇一種方式
+// ============================================
+
+// 方式 1: 使用自定義服務器 API（推薦，使用您的服務器）
+const API_BASE_URL = 'http://43.153.137.85:3000/api';
+// 如果配置了 Nginx 反向代理，可以使用：
+// const API_BASE_URL = 'http://43.153.137.85/api';
+
+// 方式 2: 使用 Firebase（如果不想用服務器，取消下面註釋並註釋掉方式 1）
+/*
 const firebaseConfig = {
     apiKey: "YOUR_API_KEY",
     authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
@@ -11,7 +21,6 @@ const firebaseConfig = {
     appId: "YOUR_APP_ID"
 };
 
-// 初始化 Firebase（如果已配置）
 let firebaseApp = null;
 let database = null;
 let auth = null;
@@ -25,12 +34,18 @@ try {
 } catch (e) {
     console.warn("Firebase 未配置，將使用本地存儲模式");
 }
+*/
+
+// 判斷使用哪種方式
+const USE_API = API_BASE_URL && !API_BASE_URL.includes('您的');
+const USE_FIREBASE = typeof firebase !== 'undefined' && firebase && firebaseConfig && firebaseConfig.apiKey !== "YOUR_API_KEY";
 
 // 全局變量
 let votes = [];
 let currentVote = null;
 let currentUser = null;
 let isAdmin = false;
+let pollInterval = null; // 用於輪詢更新
 
 // 管理員密碼（可在這裡修改）
 const ADMIN_PASSWORD = "admin123";
@@ -251,9 +266,9 @@ function loadVotes() {
     }
 }
 
-// 保存投票數據
+// 保存投票數據（API 模式下不需要此函數，每個操作直接調用 API）
 function saveVotes() {
-    if (database) {
+    if (USE_FIREBASE && database) {
         // 保存到 Firebase
         const votesRef = database.ref('votes');
         const votesObj = {};
@@ -261,10 +276,11 @@ function saveVotes() {
             votesObj[vote.id] = vote;
         });
         votesRef.set(votesObj);
-    } else {
-        // 保存到本地存儲（備用方案）
+    } else if (!USE_API) {
+        // 使用本地存儲（備用方案）
         localStorage.setItem('votes', JSON.stringify(votes));
     }
+    // API 模式下不需要此函數，因為每個操作都直接調用 API
 }
 
 // 添加選項
@@ -363,6 +379,8 @@ function createVote(e) {
     // 保存投票數據
     saveVotes();
     
+    alert('投票創建成功！');
+    
     // 重置表單
     createVoteForm.reset();
     
@@ -371,9 +389,6 @@ function createVote(e) {
     
     // 切換到列表頁
     switchTab('list');
-    
-    // 顯示成功提示
-    alert('投票創建成功！');
 }
 
 // 重置選項容器
