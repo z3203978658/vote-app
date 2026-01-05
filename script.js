@@ -9,6 +9,10 @@ const API_BASE_URL = 'http://43.153.137.85:3000/api';
 // 如果配置了 Nginx 反向代理，可以使用：
 // const API_BASE_URL = 'http://43.153.137.85/api';
 
+// API Key（與服務器設置的 API_KEY 保持一致）
+// ⚠️ 注意：前端代碼公開，API Key 會暴露，但仍可增加一層保護
+const API_KEY = '082e2b8873499bf0ad09c959ce65463ca2583425cdc71df8dae3f41d59ed3313'; // 與服務器環境變量中的 API_KEY 相同
+
 // 方式 2: 使用 Firebase（如果不想用服務器，取消下面註釋並註釋掉方式 1）
 /*
 const firebaseConfig = {
@@ -37,7 +41,7 @@ try {
 */
 
 // 判斷使用哪種方式
-const USE_API = API_BASE_URL && !API_BASE_URL.includes('您的');
+const USE_API = API_BASE_URL && !API_BASE_URL.includes('您的') && API_KEY !== 'your-secret-api-key-change-this';
 const USE_FIREBASE = typeof firebase !== 'undefined' && firebase && firebaseConfig && firebaseConfig.apiKey !== "YOUR_API_KEY";
 
 // 全局變量
@@ -49,6 +53,39 @@ let pollInterval = null; // 用於輪詢更新
 
 // 管理員密碼（可在這裡修改）
 const ADMIN_PASSWORD = "admin123";
+
+// ============================================
+// 安全的 API 請求函數（自動添加 API Key）
+// ============================================
+async function apiRequest(url, options = {}) {
+    const defaultHeaders = {
+        'Content-Type': 'application/json',
+        'X-API-Key': API_KEY // 添加 API Key 頭部
+    };
+    
+    const config = {
+        ...options,
+        headers: {
+            ...defaultHeaders,
+            ...(options.headers || {})
+        }
+    };
+    
+    try {
+        const response = await fetch(url, config);
+        
+        // 處理錯誤響應
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ error: '未知錯誤' }));
+            throw new Error(error.error || `HTTP ${response.status}`);
+        }
+        
+        return response;
+    } catch (error) {
+        console.error('API 請求失敗:', error);
+        throw error;
+    }
+}
 
 // DOM 元素
 const loginModal = document.getElementById('loginModal');
@@ -247,44 +284,35 @@ async function loadVotes() {
     if (USE_API) {
         // 使用自定義 API（您的服務器）
         try {
-            const response = await fetch(`${API_BASE_URL}/votes`);
-            if (response.ok) {
-                votes = await response.json();
-                renderVotesList();
-                
-                // 設置輪詢更新（每 5 秒刷新一次）
-                if (pollInterval) {
-                    clearInterval(pollInterval);
-                }
-                pollInterval = setInterval(async () => {
-                    try {
-                        const res = await fetch(`${API_BASE_URL}/votes`);
-                        if (res.ok) {
-                            const newVotes = await res.json();
-                            // 只在數據變化時更新
-                            if (JSON.stringify(votes) !== JSON.stringify(newVotes)) {
-                                votes = newVotes;
-                                renderVotesList();
-                                // 如果正在查看投票詳情，更新詳情頁
-                                if (currentVote) {
-                                    const updatedVote = votes.find(v => v.id === currentVote.id);
-                                    if (updatedVote) {
-                                        currentVote = updatedVote;
-                                        renderVoteDetail();
-                                    }
-                                }
+            const response = await apiRequest(`${API_BASE_URL}/votes`);
+            votes = await response.json();
+            renderVotesList();
+            
+            // 設置輪詢更新（每 5 秒刷新一次）
+            if (pollInterval) {
+                clearInterval(pollInterval);
+            }
+            pollInterval = setInterval(async () => {
+                try {
+                    const res = await apiRequest(`${API_BASE_URL}/votes`);
+                    const newVotes = await res.json();
+                    // 只在數據變化時更新
+                    if (JSON.stringify(votes) !== JSON.stringify(newVotes)) {
+                        votes = newVotes;
+                        renderVotesList();
+                        // 如果正在查看投票詳情，更新詳情頁
+                        if (currentVote) {
+                            const updatedVote = votes.find(v => v.id === currentVote.id);
+                            if (updatedVote) {
+                                currentVote = updatedVote;
+                                renderVoteDetail();
                             }
                         }
-                    } catch (error) {
-                        console.error('輪詢更新失敗:', error);
                     }
-                }, 5000);
-            } else {
-                console.error('獲取投票失敗:', response.statusText);
-                // 降級到本地存儲
-                votes = JSON.parse(localStorage.getItem('votes')) || [];
-                renderVotesList();
-            }
+                } catch (error) {
+                    console.error('輪詢更新失敗:', error);
+                }
+            }, 5000);
         } catch (error) {
             console.error('API 請求失敗:', error);
             // 降級到本地存儲
@@ -411,11 +439,8 @@ async function createVote(e) {
     if (USE_API) {
         // 使用 API 創建投票
         try {
-            const response = await fetch(`${API_BASE_URL}/votes`, {
+            const response = await apiRequest(`${API_BASE_URL}/votes`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({
                     title,
                     description,
@@ -425,18 +450,14 @@ async function createVote(e) {
                 })
             });
             
-            if (response.ok) {
-                const newVote = await response.json();
-                alert('投票創建成功！');
-                // 重新加載投票列表
-                await loadVotes();
-            } else {
-                const error = await response.json();
-                alert('創建投票失敗：' + (error.error || '未知錯誤'));
-                return;
-            }
+            const newVote = await response.json();
+            alert('投票創建成功！');
+            // 重新加載投票列表
+            await loadVotes();
         } catch (error) {
             console.error('創建投票失敗:', error);
+            alert('創建投票失敗：' + error.message);
+            return;
             alert('創建投票失敗，請檢查網絡連接');
             return;
         }
@@ -595,21 +616,15 @@ async function deleteVote(voteId) {
         if (USE_API) {
             // 使用 API 刪除投票
             try {
-                const response = await fetch(`${API_BASE_URL}/votes/${voteId}`, {
+                const response = await apiRequest(`${API_BASE_URL}/votes/${voteId}`, {
                     method: 'DELETE'
                 });
                 
-                if (response.ok) {
-                    votes = votes.filter(v => v.id !== voteId);
-                    alert('投票已刪除！');
-                } else {
-                    const error = await response.json();
-                    alert('刪除投票失敗：' + (error.error || '未知錯誤'));
-                    return;
-                }
+                votes = votes.filter(v => v.id !== voteId);
+                alert('投票已刪除！');
             } catch (error) {
                 console.error('刪除投票失敗:', error);
-                alert('刪除投票失敗，請檢查網絡連接');
+                alert('刪除投票失敗：' + error.message);
                 return;
             }
         } else if (USE_FIREBASE && database) {
@@ -681,33 +696,24 @@ async function submitVote(e) {
     if (USE_API) {
         // 使用 API 提交投票
         try {
-            const response = await fetch(`${API_BASE_URL}/votes/${currentVote.id}`, {
+            const response = await apiRequest(`${API_BASE_URL}/votes/${currentVote.id}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({
                     selectedOptions: selectedIndices
                 })
             });
             
-            if (response.ok) {
-                const updatedVote = await response.json();
-                currentVote = updatedVote;
-                // 更新本地數組
-                const voteIndex = votes.findIndex(v => v.id === currentVote.id);
-                if (voteIndex !== -1) {
-                    votes[voteIndex] = updatedVote;
-                }
-                alert('投票成功！');
-            } else {
-                const error = await response.json();
-                alert('投票失敗：' + (error.error || '未知錯誤'));
-                return;
+            const updatedVote = await response.json();
+            currentVote = updatedVote;
+            // 更新本地數組
+            const voteIndex = votes.findIndex(v => v.id === currentVote.id);
+            if (voteIndex !== -1) {
+                votes[voteIndex] = updatedVote;
             }
+            alert('投票成功！');
         } catch (error) {
             console.error('投票失敗:', error);
-            alert('投票失敗，請檢查網絡連接');
+            alert('投票失敗：' + error.message);
             return;
         }
     } else if (USE_FIREBASE && database) {
