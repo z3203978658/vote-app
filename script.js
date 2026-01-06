@@ -5,9 +5,12 @@
 // ============================================
 
 // 方式 1: 使用自定義服務器 API（推薦，使用您的服務器）
-const API_BASE_URL = 'http://43.153.137.85:3000/api';
-// 如果配置了 Nginx 反向代理，可以使用：
-// const API_BASE_URL = 'http://43.153.137.85/api';
+// 前端在 GitHub Pages 是 HTTPS，後端也必須提供 HTTPS 入口
+// 建議配置 Nginx/Caddy/Apache 反向代理到本地 3000，並開啟 443 SSL
+// 示例：替換為你的實際 HTTPS 反代地址
+const API_BASE_URL = 'https://43.153.137.85/api';
+// 僅本地或內網測試可用 HTTP（在 GitHub Pages 會被瀏覽器攔截）
+// const API_BASE_URL = 'http://localhost:3000/api';
 
 // API Key（與服務器設置的 API_KEY 保持一致）
 // ⚠️ 注意：前端代碼公開，API Key 會暴露，但仍可增加一層保護
